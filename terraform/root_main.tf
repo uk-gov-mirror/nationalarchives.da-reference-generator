@@ -102,6 +102,7 @@ locals {
     ]
     staging = ["${module.shared_configurations_talend.config.staging.api_gateway_vpce}"]
     prod    = ["${module.shared_configurations_talend.config.prod.api_gateway_vpce}"]
+    dev     = []
   }
 }
 
