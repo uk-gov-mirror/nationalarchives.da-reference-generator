@@ -106,7 +106,13 @@ locals {
   }
 }
 
+moved {
+  from = module.reference_generator_api_gateway_private
+  to   = module.reference_generator_api_gateway_private[0]
+}
+
 module "reference_generator_api_gateway_private" {
+  count                  = local.hosting_environment != "prod" ? 1 : 0
   source                 = "./da-terraform-modules/apigateway"
   endpoint_configuration = { "types" : ["PRIVATE"] }
   api_definition = templatefile("./templates/api_gateway/reference_generator.json.tpl", {
@@ -118,7 +124,7 @@ module "reference_generator_api_gateway_private" {
   environment = local.hosting_environment
   common_tags = local.hosting_common_tags
   api_rest_policy = templatefile("${path.module}/templates/api_gateway/reference_generator_rest_policy_private.json.tpl", {
-    api_gateway_arn = module.reference_generator_api_gateway_private.api_execution_arn
+    api_gateway_arn = module.reference_generator_api_gateway_private[0].api_execution_arn
 
     allowed_vpces = jsonencode(local.allowed_vpces_tdr[local.hosting_environment])
   })
@@ -133,9 +139,10 @@ module "reference_generator_api_gateway_private" {
 # The da-terraform-modules/lambda can only accept a map so duplicate principal names are not possible
 # Add the permission just for the private API
 resource "aws_lambda_permission" "lambda_permissions" {
+  count         = local.hosting_environment != "prod" ? 1 : 0
   statement_id  = "AllowExecutionFromApigatewayPrivate"
   action        = "lambda:InvokeFunction"
   function_name = module.reference_generator_lambda.lambda_function.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.reference_generator_api_gateway_private.api_execution_arn}/*/GET/counter"
+  source_arn    = "${module.reference_generator_api_gateway_private[0].api_execution_arn}/*/GET/counter"
 }
